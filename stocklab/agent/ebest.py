@@ -1,6 +1,8 @@
 import configparser
 import win32com.client
 import pythoncom 
+from datetime import datetime
+import time
 
 class XASession:
     login_state = 0
@@ -17,6 +19,10 @@ class XASession:
         # 서버와 연결이 끊어지면 발생
 
 class EBest:
+
+    QEURY_LIMIT_10MIN = 200
+    LIMIT_SECONDS = 600 
+
     def __init__(self, mode = None):
 
         """
@@ -39,6 +45,36 @@ class EBest:
         self.account = config[run_mode]['account']
 
         self.xa_session_client = win32com.client.DispatchWithEvents("XA_Session.XASession", XASession)
+        self.query_cnt = []
+
+    def _execute_query(self, res, in_block_name, out_block_name,*out_fields, **set_fields)::
+        """
+        TR 코드를 실행하기 위한 메서드
+        :param res:str 리소스 이름(TR)
+        :param in_block_name:str 인 블록 이름
+        :param out_block_name:str 아웃블록 이름
+        :param in_params:list 출력 필드 리스트
+        :param in_params:dict 인 블록에 설정할 필드 딕셔너리
+        :return result:list 결과를 list에 담아 변환
+        """
+        time.sleep(1)
+        print("current query cnt:", len(self.query_cnt))
+        print(res, in_block_name, out_block_name)
+        while len(self.query_cnt) >= EBest.QEURY_LIMIT_10MIN:
+            time.sleep(1)
+            print("waiting for execute query... current query cnt:", len(self.query_cnt))
+            print(res, in_block_name, out_block_name)
+            while len(self.query_cnt) >= EBest.QEURY_LIMIT_10MIN:
+                time.sleep(1)
+                print("waiting for execute query... current query cnt:", len(self.query_cnt))
+                self.query_cnt = list(filter(lambda x : (datetime.today() - x).total_seconds() < EBest.LIMIT_SECONDS, self.query_cnt))
+
+            xa_query = win32com.client.DispatchWithEvents("XA_DataSet.XAQuery",XAQuery)
+            xa_query.LoadFromResFile(XAQuery.RES_PATH + res + ".res")
+            
+            #in_block_name 셋팅
+            
+
 
     def login(self):
         self.xa_session_client.ConnectServer(self.host,self.port)
